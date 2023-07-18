@@ -10,7 +10,6 @@ for root,folders,files in file_list:
     for file in files:
         path = Path(os.path.join(root,file))
         fileHash = hashlib.md5(open(path,'rb').read()).hexdigest()
-        print((fileHash))
         if fileHash not in unique:
             unique[fileHash] = path
             
