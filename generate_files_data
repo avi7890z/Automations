@@ -1,0 +1,75 @@
+import os
+import hashlib
+import json
+
+
+def get_file_hash(file_path):
+    """
+    Generate the SHA-256 hash of a file.
+
+    Args:
+        file_path (str): Path to the file to hash.
+
+    Returns:
+        str: SHA-256 hash of the file in hexadecimal format.
+    """
+    hash_sha256 = hashlib.sha256()
+    try:
+        with open(file_path, 'rb') as file:
+            while chunk := file.read(8192):  # Read the file in chunks
+                hash_sha256.update(chunk)
+        return hash_sha256.hexdigest()
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}")
+    return None
+
+
+def generate_file_hashes(directory):
+    """
+    Generate file hashes for all files in the directory and its subdirectories.
+
+    Args:
+        directory (str): Directory to scan for files.
+
+    Returns:
+        dict: A dictionary with file hashes as keys and the count of occurrences as values.
+    """
+    file_hashes = {}
+    for root, _, files in os.walk(directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_hash = get_file_hash(file_path)
+            if file_hash:
+                # Store the hash count, incrementing it if it's a duplicate
+                if file_hash in file_hashes:
+                    file_hashes[file_hash] += 1
+                else:
+                    file_hashes[file_hash] = 1
+    return file_hashes
+
+
+def save_hashes_to_json(file_hashes, json_file):
+    """
+    Save the file hashes and their occurrences to a JSON file.
+
+    Args:
+        file_hashes (dict): Dictionary of file hashes.
+        json_file (str): Path to the JSON file to save.
+    """
+    try:
+        with open(json_file, 'w') as f:
+            json.dump(file_hashes, f, indent=4)
+        print(f"File hashes saved to {json_file}")
+    except Exception as e:
+        print(f"Error saving JSON file: {e}")
+
+
+# Example usage
+directory_to_scan = r"S:\All Data Organization\organized_files"  # Directory to scan for files
+hashes_json_file = r"S:\All Data Organization\file_hashes.json"  # JSON file to save hashes
+
+# Generate file hashes
+file_hashes = generate_file_hashes(directory_to_scan)
+
+# Save the file hashes to a JSON file
+save_hashes_to_json(file_hashes, hashes_json_file)
