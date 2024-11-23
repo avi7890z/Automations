@@ -1,0 +1,87 @@
+import os
+import shutil
+import cv2
+
+def get_video_resolution(file_path):
+    """
+    Get the resolution (width, height) of a video file using OpenCV.
+
+    Args:
+        file_path (str): Path to the video file.
+
+    Returns:
+        tuple: (width, height) of the video, or None if not a valid video.
+    """
+    try:
+        video = cv2.VideoCapture(file_path)
+        if not video.isOpened():
+            return None
+        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        video.release()
+        return width, height
+    except Exception as e:
+        print(f"Error reading video {file_path}: {e}")
+        return None
+
+def organize_videos_by_resolution(source_dir):
+    """
+    Organizes videos into folders based on their height resolution.
+
+    Args:
+        source_dir (str): Path to the source directory.
+    """
+    # Folder for different video resolutions
+    resolution_folders = {
+        '480p': [],
+        '720p': [],
+        '1080p': [],
+        '2K': [],
+        '4K': [],
+        'higher': []
+    }
+
+    # Supported video extensions
+    video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.wmv')
+
+    for root, _, files in os.walk(source_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+
+            if file.lower().endswith(video_extensions):
+                resolution = get_video_resolution(file_path)
+                if resolution:
+                    width, height = resolution
+                    if height < 480:
+                        continue  # Skip videos lower than 480p (if needed)
+                    elif height < 720:
+                        resolution_folders['480p'].append(file_path)
+                    elif height < 1080:
+                        resolution_folders['720p'].append(file_path)
+                    elif height < 1440:
+                        resolution_folders['1080p'].append(file_path)
+                    elif height < 2160:
+                        resolution_folders['2K'].append(file_path)
+                    elif height == 2160:
+                        resolution_folders['4K'].append(file_path)
+                    else:
+                        resolution_folders['higher'].append(file_path)
+                else:
+                    print(f"Skipping {file_path}: Unable to determine resolution")
+
+    # Create directories for each resolution and move files
+    for resolution, files in resolution_folders.items():
+        if files:
+            resolution_dir = os.path.join(source_dir, resolution)
+            if not os.path.exists(resolution_dir):
+                os.makedirs(resolution_dir)
+            for file in files:
+                target_path = os.path.join(resolution_dir, os.path.basename(file))
+                # Move the video to the appropriate directory
+                shutil.move(file, target_path)
+                print(f"Moved {file} to {resolution_dir}")
+
+
+# Example usage
+source_directory = r"H:\Downloads\Free Download Manager Downloads"
+organize_videos_by_resolution(source_directory)
