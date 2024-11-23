@@ -1,0 +1,40 @@
+import os
+import shutil
+
+
+def move_all_files(source_dir, target_dir):
+    """
+    Moves all files from all subdirectories of source_dir to target_dir.
+
+    Args:
+        source_dir (str): Path to the source directory.
+        target_dir (str): Path to the target directory.
+    """
+    # Ensure the target directory exists
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
+    # Walk through all directories and files in the source directory
+    for root, _, files in os.walk(source_dir):
+        for file in files:
+            source_file = os.path.join(root, file)
+            target_file = os.path.join(target_dir, file)
+
+            # Handle duplicate filenames by renaming if needed
+            if os.path.exists(target_file):
+                base, ext = os.path.splitext(file)
+                count = 1
+                while os.path.exists(target_file):
+                    target_file = os.path.join(target_dir, f"{base}_{count}{ext}")
+                    count += 1
+
+            # Move the file
+            shutil.move(source_file, target_file)
+            print(f"Moved: {source_file} -> {target_file}")
+
+
+# Example usage
+source_directory = r"H:\Downloads\Consolidated"
+target_directory = r"H:\Downloads\Free Download Manager Downloads"
+
+move_all_files(source_directory, target_directory)
