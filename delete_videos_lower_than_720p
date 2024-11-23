@@ -1,0 +1,98 @@
+import os
+import shutil
+import cv2
+import stat
+
+def get_video_resolution(file_path):
+    """
+    Get the resolution (width, height) of a video file using OpenCV.
+
+    Args:
+        file_path (str): Path to the video file.
+
+    Returns:
+        tuple: (width, height) of the video, or None if not a valid video.
+    """
+    try:
+        video = cv2.VideoCapture(file_path)
+        if not video.isOpened():
+            return None
+        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        video.release()
+        return width, height
+    except Exception as e:
+        print(f"Error reading video {file_path}: {e}")
+        return None
+
+def give_delete_permission(file_path):
+    """
+    Ensure the file has the required permissions to be deleted.
+
+    Args:
+        file_path (str): Path to the file.
+    """
+    try:
+        # Change the file's permissions to allow deletion
+        os.chmod(file_path, stat.S_IWRITE)
+    except Exception as e:
+        print(f"Failed to modify permissions for {file_path}: {e}")
+
+def process_directory(source_dir, non_video_dir):
+    """
+    Deletes videos lower than 720p and moves non-video files to a specific directory.
+
+    Args:
+        source_dir (str): Path to the source directory.
+        non_video_dir (str): Path to the directory for non-video files.
+    """
+    if not os.path.exists(non_video_dir):
+        os.makedirs(non_video_dir)
+
+    video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.wmv')
+
+    for root, _, files in os.walk(source_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+
+            try:
+                if file.lower().endswith(video_extensions):
+                    resolution = get_video_resolution(file_path)
+                    if resolution:
+                        width, height = resolution
+                        if height < 720:
+                            # Ensure the script has permission to delete the file
+                            give_delete_permission(file_path)
+                            print(f"Deleting {file_path} (Resolution: {width}x{height})")
+                            os.remove(file_path)
+                        else:
+                            print(f"Keeping {file_path} (Resolution: {width}x{height})")
+                    else:
+                        print(f"Skipping {file_path}: Unable to determine resolution")
+                else:
+                    target_path = os.path.join(non_video_dir, file)
+                    if os.path.exists(target_path):
+                        base, ext = os.path.splitext(file)
+                        count = 1
+                        while os.path.exists(target_path):
+                            target_path = os.path.join(non_video_dir, f"{base}_{count}{ext}")
+                            count += 1
+
+                    shutil.move(file_path, target_path)
+                    print(f"Moved non-video file: {file_path} -> {target_path}")
+            except PermissionError as e:
+                print(f"Permission error: {e} for file {file_path}. Attempting to adjust permissions.")
+                give_delete_permission(file_path)
+                try:
+                    os.remove(file_path)
+                    print(f"Successfully deleted {file_path} after adjusting permissions.")
+                except Exception as e:
+                    print(f"Failed to delete {file_path} even after adjusting permissions: {e}")
+            except Exception as e:
+                print(f"Error: {e} for file {file_path}. Skipping...")
+
+
+source_directory = r"H:\Downloads\Free Download Manager Downloads"
+non_video_directory = r"H:\Downloads\Free Download Manager Downloads"
+
+process_directory(source_directory, non_video_directory)
