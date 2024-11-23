@@ -1,0 +1,92 @@
+import os
+import shutil
+import datetime
+from PIL import Image
+from PIL.ExifTags import TAGS
+
+
+def get_image_date_taken(image_path):
+    """
+    Extracts the date when the image was taken using EXIF data.
+
+    Args:
+        image_path (str): Path to the image file.
+
+    Returns:
+        datetime.datetime: Date and time the image was taken, or None if not found.
+    """
+    try:
+        # Open image using Pillow
+        img = Image.open(image_path)
+        exif_data = img._getexif()
+        if exif_data is not None:
+            for tag, value in exif_data.items():
+                if TAGS.get(tag) == 'DateTimeOriginal':
+                    # DateTimeOriginal format: 'YYYY:MM:DD HH:MM:SS'
+                    date_taken = value
+                    return datetime.datetime.strptime(date_taken, '%Y:%m:%d %H:%M:%S')
+    except Exception as e:
+        print(f"Error reading EXIF data for {image_path}: {e}")
+    return None
+
+
+def get_video_date_taken(video_path):
+    """
+    Gets the date the video was created using the file's creation time.
+
+    Args:
+        video_path (str): Path to the video file.
+
+    Returns:
+        datetime.datetime: Creation date of the video file.
+    """
+    try:
+        timestamp = os.path.getctime(video_path)
+        return datetime.datetime.fromtimestamp(timestamp)
+    except Exception as e:
+        print(f"Error getting creation date for {video_path}: {e}")
+    return None
+
+
+def organize_files_by_date(source_dir, output_dir):
+    """
+    Organizes images and videos by the date they were taken (or created) into separate folders.
+
+    Args:
+        source_dir (str): Directory containing the files to organize.
+        output_dir (str): Directory where organized files will be moved.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for root, _, files in os.walk(source_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+
+            # Check if the file is an image or video
+            if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+                date_taken = get_image_date_taken(file_path)
+            elif file.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')):
+                date_taken = get_video_date_taken(file_path)
+            else:
+                continue  # Skip non-image and non-video files
+
+            # If a date was found, organize the file into a folder based on the date
+            if date_taken:
+                folder_name = date_taken.strftime('%Y-%m-%d')  # Format as YYYY-MM-DD
+                folder_path = os.path.join(output_dir, folder_name)
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+
+                # Move the file to the appropriate folder
+                shutil.move(file_path, os.path.join(folder_path, file))
+                print(f"Moved {file} to {folder_path}")
+            else:
+                print(f"Could not extract date for {file}. Skipping.")
+
+
+# Example usage
+source_directory = r"S:\G drive\26-10-2023\Camera"  # Directory containing the images and videos
+output_directory = r"H:\Photos\organized_files"  # Directory where organized files will be moved
+
+organize_files_by_date(source_directory, output_directory)
